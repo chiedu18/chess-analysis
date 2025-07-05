@@ -144,6 +144,9 @@
         <p style="text-align: center; color: #666; margin-bottom: 30px;">
             Enter your Chess.com username to fetch and analyze your recent games
         </p>
+        <p style="text-align: center; color: #888; font-size: 14px; margin-bottom: 20px;">
+            Try: <strong>Hikaru</strong>, <strong>MagnusCarlsen</strong>, <strong>GothamChess</strong>, or <strong>your_username</strong>
+        </p>
 
         <form id="fetchForm">
             <div class="form-group">
@@ -152,6 +155,11 @@
             </div>
             <button type="submit" id="fetchBtn">Fetch Last 100 Games</button>
         </form>
+
+        <div style="text-align: center; margin-top: 20px;">
+            <button type="button" id="testBtn" style="background-color: #28a745; margin-right: 10px;">Test API</button>
+            <span id="testStatus" style="font-size: 14px; color: #666;"></span>
+        </div>
 
         <div id="loading" class="loading" style="display: none;">
             <p>Fetching games from Chess.com...</p>
@@ -234,6 +242,7 @@
         function displayGamesPreview(games) {
             const gamesList = document.getElementById('gamesList');
             const gamesPreview = document.getElementById('gamesPreview');
+            const username = document.getElementById('username').value.trim();
 
             gamesList.innerHTML = '';
 
@@ -241,8 +250,9 @@
                 const gameElement = document.createElement('div');
                 gameElement.className = 'game-item';
 
-                const result = getGameResult(game, game.white === game.username);
-                const opponent = game.white === game.username ? game.black : game.white;
+                const isWhite = game.white === username;
+                const result = getGameResult(game, isWhite);
+                const opponent = isWhite ? game.black : game.white;
                 const date = new Date(game.end_time * 1000).toLocaleDateString();
 
                 gameElement.innerHTML = `
@@ -269,12 +279,39 @@
         }
 
         function getGameResult(game, isWhite) {
-            if (game.white === game.username) {
+            if (isWhite) {
                 return game.white_result;
             } else {
                 return game.black_result;
             }
         }
+
+        // Test API functionality
+        document.getElementById('testBtn').addEventListener('click', async function() {
+            const testBtn = document.getElementById('testBtn');
+            const testStatus = document.getElementById('testStatus');
+
+            testBtn.disabled = true;
+            testStatus.textContent = 'Testing API...';
+
+            try {
+                const response = await fetch('/api/test/');
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    testStatus.textContent = data.message;
+                    testStatus.style.color = '#28a745';
+                } else {
+                    testStatus.textContent = 'API Error: ' + data.message;
+                    testStatus.style.color = '#dc3545';
+                }
+            } catch (err) {
+                testStatus.textContent = 'Network Error: ' + err.message;
+                testStatus.style.color = '#dc3545';
+            } finally {
+                testBtn.disabled = false;
+            }
+        });
     </script>
 </body>
 
