@@ -9,9 +9,12 @@ def fetch_chess_com_games(username, limit=100):
     """
     Fetch the last N games from Chess.com API for a given username
     """
+    # Normalize username to lowercase
+    username = username.strip().lower()
+    
     try:
         # Get player's game archives (monthly archives)
-        archives_url = f"https://api.chess.com/pub/player/{username}/games/archives"
+        archives_url = f"https://api.chess.com/pub/player/{username}/games"
         archives_response = requests.get(archives_url)
         archives_response.raise_for_status()
         
@@ -70,6 +73,9 @@ def fetch_games(request):
             
             if not username:
                 return JsonResponse({'error': 'Username is required'}, status=400)
+            
+            # Normalize username to lowercase
+            username = username.strip().lower()
             
             print(f"Fetching games for username: {username}")  # Debug print
             
