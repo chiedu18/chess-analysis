@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 
@@ -5,177 +6,78 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chess Analysis Tool</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f5f5f5;
-        }
-        
-        .container {
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        }
-        
-        h1 {
-            color: #333;
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        
-        .form-group {
-            margin-bottom: 20px;
-        }
-        
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-            color: #555;
-        }
-        
-        input[type="text"] {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #ddd;
-            border-radius: 5px;
-            font-size: 16px;
-            box-sizing: border-box;
-        }
-        
-        input[type="text"]:focus {
-            outline: none;
-            border-color: #007bff;
-        }
-        
-        button {
-            background-color: #007bff;
-            color: white;
-            padding: 12px 30px;
-            border: none;
-            border-radius: 5px;
-            font-size: 16px;
-            cursor: pointer;
-            width: 100%;
-        }
-        
-        button:hover {
-            background-color: #0056b3;
-        }
-        
-        button:disabled {
-            background-color: #ccc;
-            cursor: not-allowed;
-        }
-        
-        .loading {
-            text-align: center;
-            margin: 20px 0;
-            color: #666;
-        }
-        
-        .error {
-            background-color: #f8d7da;
-            color: #721c24;
-            padding: 15px;
-            border-radius: 5px;
-            margin: 20px 0;
-            border: 1px solid #f5c6cb;
-        }
-        
-        .success {
-            background-color: #d4edda;
-            color: #155724;
-            padding: 15px;
-            border-radius: 5px;
-            margin: 20px 0;
-            border: 1px solid #c3e6cb;
-        }
-        
-        .games-preview {
-            margin-top: 30px;
-        }
-        
-        .game-item {
-            background: #f8f9fa;
-            padding: 15px;
-            margin: 10px 0;
-            border-radius: 5px;
-            border-left: 4px solid #007bff;
-        }
-        
-        .game-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-        
-        .game-result {
-            font-weight: bold;
-        }
-        
-        .win {
-            color: #28a745;
-        }
-        
-        .loss {
-            color: #dc3545;
-        }
-        
-        .draw {
-            color: #6c757d;
-        }
-        
-        .game-details {
-            font-size: 14px;
-            color: #666;
-        }
-    </style>
+
+    <!-- Bootstrap 5 CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Chessboard.js CDN -->
+    <link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{% static 'core/main.css' %}">
 </head>
 
 <body>
-    <div class="container">
-        <h1>♟️ Chess Analysis Tool</h1>
-        <p style="text-align: center; color: #666; margin-bottom: 30px;">
-            Enter your Chess.com username to fetch and analyze your recent games
-        </p>
-        <p style="text-align: center; color: #888; font-size: 14px; margin-bottom: 20px;">
-            Try: <strong>Hikaru</strong>, <strong>MagnusCarlsen</strong>, <strong>GothamChess</strong>, or <strong>your_username</strong>
-        </p>
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header text-center">
+                        <h1 class="mb-0">♟️ Chess Analysis Tool</h1>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-center text-muted mb-4">
+                            Enter your Chess.com username to fetch and analyze your recent games
+                        </p>
 
-        <form id="fetchForm">
-            <div class="form-group">
-                <label for="username">Chess.com Username:</label>
-                <input type="text" id="username" name="username" placeholder="Enter your Chess.com username" required>
+                        <form id="user-form" class="mb-4">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <label for="username" class="form-label">Chess.com Username:</label>
+                                <input type="text" class="form-control" id="username" name="username" placeholder="Enter your Chess.com username" required>
+                                <div class="form-text">Try: <strong>Hikaru</strong>, <strong>MagnusCarlsen</strong>, or <strong>GothamChess</strong></div>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">Fetch Last 100 Games</button>
+                        </form>
+
+                        <div class="text-center mb-3">
+                            <button type="button" id="testBtn" class="btn btn-success me-2">Test API</button>
+                            <span id="testStatus" class="text-muted small"></span>
+                        </div>
+
+                        <div id="loading" class="text-center" style="display: none;">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-2">Fetching games from Chess.com...</p>
+                        </div>
+
+                        <div id="error" class="alert alert-danger" style="display: none;"></div>
+                        <div id="success" class="alert alert-success" style="display: none;"></div>
+
+                        <pre id="status" class="bg-light p-3 rounded" style="display: none; font-size: 12px; max-height: 300px; overflow-y: auto;"></pre>
+
+                        <div id="gamesPreview" style="display: none;">
+                            <h5>Recent Games Preview</h5>
+                            <div id="gamesList"></div>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <button type="submit" id="fetchBtn">Fetch Last 100 Games</button>
-        </form>
-
-        <div style="text-align: center; margin-top: 20px;">
-            <button type="button" id="testBtn" style="background-color: #28a745; margin-right: 10px;">Test API</button>
-            <span id="testStatus" style="font-size: 14px; color: #666;"></span>
-        </div>
-
-        <div id="loading" class="loading" style="display: none;">
-            <p>Fetching games from Chess.com...</p>
-        </div>
-
-        <div id="error" class="error" style="display: none;"></div>
-        <div id="success" class="success" style="display: none;"></div>
-
-        <div id="gamesPreview" class="games-preview" style="display: none;">
-            <h3>Recent Games Preview</h3>
-            <div id="gamesList"></div>
         </div>
     </div>
 
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Chess.js -->
+    <script src="https://unpkg.com/chess.js@0.10.3/dist/chess.min.js"></script>
+
+    <!-- Chessboard.js -->
+    <script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
+
     <script>
-        document.getElementById('fetchForm').addEventListener('submit', async function(e) {
+        document.getElementById('user-form').addEventListener('submit', async function(e) {
             e.preventDefault();
 
             const username = document.getElementById('username').value.trim();
@@ -184,17 +86,19 @@
                 return;
             }
 
-            const fetchBtn = document.getElementById('fetchBtn');
+            const form = document.getElementById('user-form');
             const loading = document.getElementById('loading');
             const error = document.getElementById('error');
             const success = document.getElementById('success');
+            const status = document.getElementById('status');
             const gamesPreview = document.getElementById('gamesPreview');
 
             // Show loading state
-            fetchBtn.disabled = true;
+            form.querySelector('button[type="submit"]').disabled = true;
             loading.style.display = 'block';
             error.style.display = 'none';
             success.style.display = 'none';
+            status.style.display = 'none';
             gamesPreview.style.display = 'none';
 
             try {
@@ -202,6 +106,7 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
                     },
                     body: JSON.stringify({
                         username: username
@@ -209,6 +114,10 @@
                 });
 
                 const data = await response.json();
+
+                // Show raw response in status
+                status.textContent = JSON.stringify(data, null, 2);
+                status.style.display = 'block';
 
                 if (!response.ok) {
                     throw new Error(data.error || 'Failed to fetch games');
@@ -219,7 +128,10 @@
                 }
 
                 // Show success
-                success.textContent = `Successfully fetched ${data.games.length} games for ${username}!`;
+                success.innerHTML = `
+                    Successfully fetched ${data.games.length} games for ${username}! 
+                    <a href="/games/?username=${username}" class="btn btn-sm btn-outline-primary ms-2">View Full List</a>
+                `;
                 success.style.display = 'block';
 
                 // Display games preview
@@ -228,7 +140,7 @@
             } catch (err) {
                 showError(err.message);
             } finally {
-                fetchBtn.disabled = false;
+                form.querySelector('button[type="submit"]').disabled = false;
                 loading.style.display = 'none';
             }
         });
@@ -248,7 +160,7 @@
 
             games.slice(0, 10).forEach(game => {
                 const gameElement = document.createElement('div');
-                gameElement.className = 'game-item';
+                gameElement.className = 'card mb-2';
 
                 const isWhite = game.white === username;
                 const result = getGameResult(game, isWhite);
@@ -256,12 +168,14 @@
                 const date = new Date(game.end_time * 1000).toLocaleDateString();
 
                 gameElement.innerHTML = `
-                    <div class="game-header">
-                        <span class="game-result ${result.toLowerCase()}">${result}</span>
-                        <span class="game-details">${date}</span>
-                    </div>
-                    <div class="game-details">
-                        vs ${opponent} • ${game.time_class} • ${game.time_control}
+                    <div class="card-body py-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="badge ${getResultClass(result)}">${result}</span>
+                            <small class="text-muted">${date}</small>
+                        </div>
+                        <div class="small text-muted">
+                            vs ${opponent} • ${game.time_class} • ${game.time_control}
+                        </div>
                     </div>
                 `;
 
@@ -270,8 +184,8 @@
 
             if (games.length > 10) {
                 const moreElement = document.createElement('div');
-                moreElement.className = 'game-item';
-                moreElement.innerHTML = `<p style="text-align: center; color: #666;">... and ${games.length - 10} more games</p>`;
+                moreElement.className = 'text-center text-muted small';
+                moreElement.innerHTML = `... and ${games.length - 10} more games`;
                 gamesList.appendChild(moreElement);
             }
 
@@ -283,6 +197,19 @@
                 return game.white_result;
             } else {
                 return game.black_result;
+            }
+        }
+
+        function getResultClass(result) {
+            switch (result.toLowerCase()) {
+                case 'win':
+                    return 'bg-success';
+                case 'lose':
+                    return 'bg-danger';
+                case 'draw':
+                    return 'bg-secondary';
+                default:
+                    return 'bg-primary';
             }
         }
 
@@ -300,14 +227,14 @@
 
                 if (data.status === 'success') {
                     testStatus.textContent = data.message;
-                    testStatus.style.color = '#28a745';
+                    testStatus.className = 'text-success small';
                 } else {
                     testStatus.textContent = 'API Error: ' + data.message;
-                    testStatus.style.color = '#dc3545';
+                    testStatus.className = 'text-danger small';
                 }
             } catch (err) {
                 testStatus.textContent = 'Network Error: ' + err.message;
-                testStatus.style.color = '#dc3545';
+                testStatus.className = 'text-danger small';
             } finally {
                 testBtn.disabled = false;
             }

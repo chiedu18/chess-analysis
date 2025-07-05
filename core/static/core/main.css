@@ -1,0 +1,45 @@
+/* Custom styles for Chess Analysis Tool */
+
+body {
+    background-color: #f8f9fa;
+}
+
+.chess-board {
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.form-container {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+
+/* Custom styling for game results */
+
+.result-win {
+    color: #28a745;
+    font-weight: bold;
+}
+
+.result-lose {
+    color: #dc3545;
+    font-weight: bold;
+}
+
+.result-draw {
+    color: #6c757d;
+    font-weight: bold;
+}
+
+
+/* Responsive adjustments */
+
+@media (max-width: 768px) {
+    .chess-board {
+        max-width: 100%;
+    }
+    .table-responsive {
+        font-size: 0.9rem;
+    }
+}

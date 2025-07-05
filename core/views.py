@@ -94,7 +94,13 @@ def fetch_games(request):
 
 def games_list(request):
     """Display list of fetched games"""
-    return render(request, 'core/games_list.html')
+    username = request.GET.get('username')
+    if username:
+        result = fetch_chess_com_games(username, limit=100)
+        if 'error' in result:
+            return render(request, 'core/games_list.html', {'error': result['error']})
+        return render(request, 'core/games_list.html', {'games': result['games']})
+    return render(request, 'core/games_list.html', {'games': []})
 
 def test_api(request):
     """Test endpoint to verify Chess.com API is working"""
