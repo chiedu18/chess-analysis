@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chess Analysis Tool</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+        
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+        }
+        
+        button:hover {
+            background-color: #0056b3;
+        }
+        
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .loading {
+            text-align: center;
+            margin: 20px 0;
+            color: #666;
+        }
+        
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .games-preview {
+            margin-top: 30px;
+        }
+        
+        .game-item {
+            background: #f8f9fa;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 4px solid #007bff;
+        }
+        
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .game-result {
+            font-weight: bold;
+        }
+        
+        .win {
+            color: #28a745;
+        }
+        
+        .loss {
+            color: #dc3545;
+        }
+        
+        .draw {
+            color: #6c757d;
+        }
+        
+        .game-details {
+            font-size: 14px;
+            color: #666;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>♟️ Chess Analysis Tool</h1>
+        <p style="text-align: center; color: #666; margin-bottom: 30px;">
+            Enter your Chess.com username to fetch and analyze your recent games
+        </p>
+
+        <form id="fetchForm">
+            <div class="form-group">
+                <label for="username">Chess.com Username:</label>
+                <input type="text" id="username" name="username" placeholder="Enter your Chess.com username" required>
+            </div>
+            <button type="submit" id="fetchBtn">Fetch Last 100 Games</button>
+        </form>
+
+        <div id="loading" class="loading" style="display: none;">
+            <p>Fetching games from Chess.com...</p>
+        </div>
+
+        <div id="error" class="error" style="display: none;"></div>
+        <div id="success" class="success" style="display: none;"></div>
+
+        <div id="gamesPreview" class="games-preview" style="display: none;">
+            <h3>Recent Games Preview</h3>
+            <div id="gamesList"></div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('fetchForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const username = document.getElementById('username').value.trim();
+            if (!username) {
+                showError('Please enter a username');
+                return;
+            }
+
+            const fetchBtn = document.getElementById('fetchBtn');
+            const loading = document.getElementById('loading');
+            const error = document.getElementById('error');
+            const success = document.getElementById('success');
+            const gamesPreview = document.getElementById('gamesPreview');
+
+            // Show loading state
+            fetchBtn.disabled = true;
+            loading.style.display = 'block';
+            error.style.display = 'none';
+            success.style.display = 'none';
+            gamesPreview.style.display = 'none';
+
+            try {
+                const response = await fetch('/api/fetch-games/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username: username
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to fetch games');
+                }
+
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                // Show success
+                success.textContent = `Successfully fetched ${data.games.length} games for ${username}!`;
+                success.style.display = 'block';
+
+                // Display games preview
+                displayGamesPreview(data.games);
+
+            } catch (err) {
+                showError(err.message);
+            } finally {
+                fetchBtn.disabled = false;
+                loading.style.display = 'none';
+            }
+        });
+
+        function showError(message) {
+            const error = document.getElementById('error');
+            error.textContent = message;
+            error.style.display = 'block';
+        }
+
+        function displayGamesPreview(games) {
+            const gamesList = document.getElementById('gamesList');
+            const gamesPreview = document.getElementById('gamesPreview');
+
+            gamesList.innerHTML = '';
+
+            games.slice(0, 10).forEach(game => {
+                const gameElement = document.createElement('div');
+                gameElement.className = 'game-item';
+
+                const result = getGameResult(game, game.white === game.username);
+                const opponent = game.white === game.username ? game.black : game.white;
+                const date = new Date(game.end_time * 1000).toLocaleDateString();
+
+                gameElement.innerHTML = `
+                    <div class="game-header">
+                        <span class="game-result ${result.toLowerCase()}">${result}</span>
+                        <span class="game-details">${date}</span>
+                    </div>
+                    <div class="game-details">
+                        vs ${opponent} • ${game.time_class} • ${game.time_control}
+                    </div>
+                `;
+
+                gamesList.appendChild(gameElement);
+            });
+
+            if (games.length > 10) {
+                const moreElement = document.createElement('div');
+                moreElement.className = 'game-item';
+                moreElement.innerHTML = `<p style="text-align: center; color: #666;">... and ${games.length - 10} more games</p>`;
+                gamesList.appendChild(moreElement);
+            }
+
+            gamesPreview.style.display = 'block';
+        }
+
+        function getGameResult(game, isWhite) {
+            if (game.white === game.username) {
+                return game.white_result;
+            } else {
+                return game.black_result;
+            }
+        }
+    </script>
+</body>
+
+</html>
