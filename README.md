@@ -86,7 +86,8 @@ python manage.py createsuperuser
 - Django 5.2+
 - python-chess - Chess logic and board manipulation
 - requests - HTTP client for Chess.com API
-- stockfish-binaries - Stockfish chess engine
+- chess.com - Official Chess.com API client (provides chessdotcom import)
+- stockfish-binaries - Stockfish chess engine (auto-installs Stockfish binary)
 
 ## Development
 

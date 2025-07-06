@@ -1,5 +1,4 @@
 Django>=5.2
 python-chess
 requests
-stockfish-binaries
-chess.com 
+chess.com==3.11.1 
