@@ -1,4 +1,5 @@
-Django>=5.2
-python-chess
-requests
-chess.com==3.11.1 
+Django==5.2.4
+requests==2.31.0
+chess.com==0.1.0
+stockfish==3.28.0
+django-channels==0.7.0 

@@ -4,6 +4,8 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from django.shortcuts import render
+import hashlib
+import base64
 
 from .services.chesscom import player_profile, player_games
 from .utils.transform import massage_games
@@ -83,6 +85,25 @@ class GamesListView(TemplateView):
                 'games': [],
                 'profile': None
             })
+        
+        return context
+
+class GameDetailView(TemplateView):
+    """Display individual game analysis"""
+    template_name = "core/game_detail.html"
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        pgn_id = self.kwargs.get('pgn_id')
+        
+        # Decode PGN from base64
+        try:
+            pgn_bytes = base64.urlsafe_b64decode(pgn_id + '==')
+            pgn_text = pgn_bytes.decode('utf-8')
+            context['pgn_text'] = pgn_text
+            context['pgn_id'] = pgn_id
+        except Exception as e:
+            context['error'] = f"Invalid game ID: {str(e)}"
         
         return context
 

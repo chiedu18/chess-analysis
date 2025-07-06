@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Dict, List
+import base64
 from .outcomes import calculate_outcome_with_class
 
 def massage_game(game: Dict, username: str) -> Dict:
@@ -15,6 +16,9 @@ def massage_game(game: Dict, username: str) -> Dict:
     """
     outcome, outcome_class = calculate_outcome_with_class(game, username)
     
+    # Create a unique ID for the PGN
+    pgn_id = base64.urlsafe_b64encode(game["pgn"].encode()).decode().rstrip('=')
+    
     return {
         "end": datetime.utcfromtimestamp(game["end_time"]),
         "white": game["white"]["username"],
@@ -25,6 +29,7 @@ def massage_game(game: Dict, username: str) -> Dict:
         "black_result": game["black"]["result"],
         "time_class": game["time_class"],
         "pgn": game["pgn"],
+        "pgn_id": pgn_id,
         "url": game.get("url", ""),
         "outcome": outcome,
         "outcome_class": outcome_class,

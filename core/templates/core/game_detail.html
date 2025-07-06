@@ -1,0 +1,369 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Analysis - Chess Analysis Tool</title>
+
+    <!-- Bootstrap 5 CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Chessboard.js CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.css">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{% static 'core/main.css' %}">
+
+    <style>
+        .eval-bar {
+            width: 60px;
+            height: 400px;
+            background: linear-gradient(to top, #000 0%, #666 50%, #fff 100%);
+            position: relative;
+            border: 2px solid #333;
+        }
+        
+        .eval-indicator {
+            position: absolute;
+            width: 100%;
+            height: 4px;
+            background: #ff6b6b;
+            transition: bottom 0.3s ease;
+        }
+        
+        .move-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .move-item {
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+        }
+        
+        .move-item:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .move-item.active {
+            background-color: #e3f2fd;
+            border-left: 4px solid #2196f3;
+        }
+        
+        .engine-suggestion {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 4px;
+        }
+        
+        .eval-value {
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .positive-eval {
+            color: #4caf50;
+        }
+        
+        .negative-eval {
+            color: #f44336;
+        }
+        
+        .neutral-eval {
+            color: #666;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container-fluid mt-4">
+        {% if error %}
+        <div class="alert alert-danger">
+            <h4>Error</h4>
+            <p>{{ error }}</p>
+            <a href="{% url 'core:home' %}" class="btn btn-primary">Back to Home</a>
+        </div>
+        {% else %}
+
+        <!-- Header -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h1>♟️ Game Analysis</h1>
+                        <p class="text-muted">Real-time engine analysis powered by Stockfish</p>
+                    </div>
+                    <div>
+                        <a href="{% url 'core:home' %}" class="btn btn-outline-primary">← Back to Home</a>
+                        <button id="shareBtn" class="btn btn-outline-secondary ms-2">Share PGN</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analysis Layout -->
+        <div class="row">
+            <!-- Chessboard -->
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Position</h5>
+                    </div>
+                    <div class="card-body text-center">
+                        <div id="board" style="width: 400px; margin: 0 auto;"></div>
+                        <div class="mt-3">
+                            <button id="prevBtn" class="btn btn-sm btn-outline-secondary">← Previous</button>
+                            <button id="nextBtn" class="btn btn-sm btn-outline-secondary">Next →</button>
+                            <button id="startBtn" class="btn btn-sm btn-outline-primary">Start Position</button>
+                            <button id="endBtn" class="btn btn-sm btn-outline-primary">End Position</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Evaluation Bar -->
+            <div class="col-md-2">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Evaluation</h5>
+                    </div>
+                    <div class="card-body text-center">
+                        <div class="eval-bar">
+                            <div id="evalIndicator" class="eval-indicator"></div>
+                        </div>
+                        <div id="evalValue" class="mt-2 eval-value">0.0</div>
+                        <small class="text-muted">centipawns</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Move List & Engine Suggestions -->
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Analysis</h5>
+                        <small class="text-muted" id="analysisStatus">Connecting...</small>
+                    </div>
+                    <div class="card-body p-0">
+                        <div id="moveList" class="move-list">
+                            <!-- Move items will be populated here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analysis Progress -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="progress mb-2">
+                            <div id="analysisProgress" class="progress-bar" role="progressbar" style="width: 0%"></div>
+                        </div>
+                        <small id="progressText" class="text-muted">Waiting for analysis to start...</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% endif %}
+    </div>
+
+    <!-- JavaScript Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/1.0.0/chess.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        // Game state
+        let game = new Chess();
+        let currentPly = 0;
+        let analysis = [];
+        let socket = null;
+
+        // Initialize chessboard
+        const board = Chessboard('board', {
+            position: 'start',
+            draggable: false,
+            pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png'
+        });
+
+        // Initialize evaluation bar
+        function updateEvalBar(eval) {
+            const indicator = document.getElementById('evalIndicator');
+            const evalValue = document.getElementById('evalValue');
+
+            let value = 0;
+            if (eval.type === 'cp') {
+                value = eval.value / 100; // Convert centipawns to pawns
+            } else if (eval.type === 'mate') {
+                value = eval.value > 0 ? 10 : -10; // Max out for mate
+            }
+
+            // Update indicator position (0-100% based on -10 to +10 range)
+            const percentage = Math.max(0, Math.min(100, (value + 10) * 5));
+            indicator.style.bottom = percentage + '%';
+
+            // Update value display
+            if (eval.type === 'cp') {
+                evalValue.textContent = (value > 0 ? '+' : '') + value.toFixed(1);
+                evalValue.className = 'mt-2 eval-value ' +
+                    (value > 0.1 ? 'positive-eval' : value < -0.1 ? 'negative-eval' : 'neutral-eval');
+            } else {
+                evalValue.textContent = 'M' + Math.abs(eval.value);
+                evalValue.className = 'mt-2 eval-value ' + (eval.value > 0 ? 'positive-eval' : 'negative-eval');
+            }
+        }
+
+        // Add move to list
+        function addMoveToList(ply, eval, lines) {
+            const moveList = document.getElementById('moveList');
+            const moveItem = document.createElement('div');
+            moveItem.className = 'move-item';
+            moveItem.onclick = () => goToPly(ply);
+
+            let moveText = ply === 0 ? 'Start Position' : `Move ${Math.floor(ply/2) + 1}${ply % 2 === 0 ? '' : '...'}`;
+
+            let evalText = '';
+            if (eval.type === 'cp') {
+                const value = eval.value / 100;
+                evalText = (value > 0 ? '+' : '') + value.toFixed(1);
+            } else {
+                evalText = 'M' + Math.abs(eval.value);
+            }
+
+            let linesText = '';
+            if (lines && lines.length > 0) {
+                linesText = `<div class="engine-suggestion">Best: ${lines[0].Move} (${lines[0].Centipawn/100})</div>`;
+            }
+
+            moveItem.innerHTML = `
+                <div class="d-flex justify-content-between">
+                    <span>${moveText}</span>
+                    <span class="eval-value ${eval.type === 'cp' && eval.value > 10 ? 'positive-eval' : eval.type === 'cp' && eval.value < -10 ? 'negative-eval' : 'neutral-eval'}">${evalText}</span>
+                </div>
+                ${linesText}
+            `;
+
+            moveList.appendChild(moveItem);
+        }
+
+        // Navigate to specific ply
+        function goToPly(ply) {
+            currentPly = ply;
+            game = new Chess();
+
+            // Replay moves up to the target ply
+            for (let i = 0; i < ply && i < analysis.length - 1; i++) {
+                if (analysis[i] && analysis[i].lines && analysis[i].lines.length > 0) {
+                    game.move(analysis[i].lines[0].Move);
+                }
+            }
+
+            board.position(game.fen());
+            updateEvalBar(analysis[ply] ? analysis[ply].eval : {
+                type: 'cp',
+                value: 0
+            });
+
+            // Update active move in list
+            document.querySelectorAll('.move-item').forEach((item, index) => {
+                item.classList.toggle('active', index === ply);
+            });
+        }
+
+        // Navigation buttons
+        document.getElementById('prevBtn').onclick = () => {
+            if (currentPly > 0) goToPly(currentPly - 1);
+        };
+
+        document.getElementById('nextBtn').onclick = () => {
+            if (currentPly < analysis.length - 1) goToPly(currentPly + 1);
+        };
+
+        document.getElementById('startBtn').onclick = () => goToPly(0);
+        document.getElementById('endBtn').onclick = () => goToPly(analysis.length - 1);
+
+        // Share PGN functionality
+        document.getElementById('shareBtn').onclick = () => {
+            const pgn = `{{ pgn_text|escapejs }}`;
+            navigator.clipboard.writeText(pgn).then(() => {
+                alert('PGN copied to clipboard!');
+            });
+        };
+
+        // WebSocket connection
+        function connectWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws/analysis/{{ pgn_id }}/`;
+
+            socket = new WebSocket(wsUrl);
+
+            socket.onopen = function(e) {
+                document.getElementById('analysisStatus').textContent = 'Connected, starting analysis...';
+                // Send PGN to start analysis
+                socket.send(JSON.stringify({
+                    type: 'start_analysis',
+                    pgn: `{{ pgn_text|escapejs }}`
+                }));
+            };
+
+            socket.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+
+                switch (data.type) {
+                    case 'status':
+                        document.getElementById('analysisStatus').textContent = data.message;
+                        break;
+
+                    case 'analysis':
+                        analysis[data.ply] = {
+                            eval: data.eval,
+                            lines: data.lines
+                        };
+                        addMoveToList(data.ply, data.eval, data.lines);
+                        updateEvalBar(data.eval);
+
+                        // Update progress
+                        const progress = ((data.ply + 1) / 100) * 100; // Estimate total moves
+                        document.getElementById('analysisProgress').style.width = Math.min(progress, 100) + '%';
+                        document.getElementById('progressText').textContent = `Analyzed ${data.ply + 1} positions`;
+                        break;
+
+                    case 'complete':
+                        document.getElementById('analysisStatus').textContent = data.message;
+                        document.getElementById('analysisProgress').style.width = '100%';
+                        document.getElementById('progressText').textContent = 'Analysis complete!';
+                        break;
+
+                    case 'error':
+                        document.getElementById('analysisStatus').textContent = 'Error: ' + data.message;
+                        break;
+                }
+            };
+
+            socket.onclose = function(event) {
+                if (event.wasClean) {
+                    document.getElementById('analysisStatus').textContent = 'Analysis complete';
+                } else {
+                    document.getElementById('analysisStatus').textContent = 'Connection lost';
+                }
+            };
+
+            socket.onerror = function(error) {
+                document.getElementById('analysisStatus').textContent = 'Connection error';
+                console.error('WebSocket error:', error);
+            };
+        }
+
+        // Start WebSocket connection when page loads
+        document.addEventListener('DOMContentLoaded', connectWebSocket);
+    </script>
+</body>
+
+</html>
