@@ -17,22 +17,6 @@
     <link rel="stylesheet" href="{% static 'core/main.css' %}">
 
     <style>
-        .eval-bar {
-            width: 60px;
-            height: 400px;
-            background: linear-gradient(to top, #000 0%, #666 50%, #fff 100%);
-            position: relative;
-            border: 2px solid #333;
-        }
-        
-        .eval-indicator {
-            position: absolute;
-            width: 100%;
-            height: 4px;
-            background: #ff6b6b;
-            transition: bottom 0.3s ease;
-        }
-        
         .move-list {
             max-height: 400px;
             overflow-y: auto;
@@ -65,15 +49,15 @@
         }
         
         .positive-eval {
-            color: #4caf50;
+            color: #28a745;
         }
         
         .negative-eval {
-            color: #f44336;
+            color: #dc3545;
         }
         
         .neutral-eval {
-            color: #666;
+            color: #6c757d;
         }
     </style>
 </head>
@@ -131,9 +115,7 @@
                         <h5 class="mb-0">Evaluation</h5>
                     </div>
                     <div class="card-body text-center">
-                        <div class="eval-bar">
-                            <div id="evalIndicator" class="eval-indicator"></div>
-                        </div>
+                        <canvas id="evalChart" width="60" height="400"></canvas>
                         <div id="evalValue" class="mt-2 eval-value">0.0</div>
                         <small class="text-muted">centipawns</small>
                     </div>
@@ -193,9 +175,51 @@
             pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png'
         });
 
-        // Initialize evaluation bar
+        // Initialize Chart.js evaluation bar
+        const evalCtx = document.getElementById('evalChart').getContext('2d');
+        const evalChart = new Chart(evalCtx, {
+            type: 'bar',
+            data: {
+                labels: [''],
+                datasets: [{
+                    data: [0],
+                    backgroundColor: '#6c757d',
+                    borderColor: '#495057',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: false,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        enabled: false
+                    }
+                },
+                scales: {
+                    x: {
+                        min: -10,
+                        max: 10,
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            display: false
+                        }
+                    },
+                    y: {
+                        display: false
+                    }
+                }
+            }
+        });
+
+        // Update evaluation bar
         function updateEvalBar(eval) {
-            const indicator = document.getElementById('evalIndicator');
             const evalValue = document.getElementById('evalValue');
 
             let value = 0;
@@ -205,9 +229,10 @@
                 value = eval.value > 0 ? 10 : -10; // Max out for mate
             }
 
-            // Update indicator position (0-100% based on -10 to +10 range)
-            const percentage = Math.max(0, Math.min(100, (value + 10) * 5));
-            indicator.style.bottom = percentage + '%';
+            // Update chart
+            evalChart.data.datasets[0].data[0] = value;
+            evalChart.data.datasets[0].backgroundColor = value > 0.1 ? '#28a745' : value < -0.1 ? '#dc3545' : '#6c757d';
+            evalChart.update('none');
 
             // Update value display
             if (eval.type === 'cp') {

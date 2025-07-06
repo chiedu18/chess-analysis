@@ -12,6 +12,20 @@
 
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{% static 'core/main.css' %}">
+    <style>
+        .clickable-row {
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        
+        .clickable-row:hover {
+            background-color: #f8f9fa !important;
+        }
+        
+        .clickable-row:active {
+            background-color: #e9ecef !important;
+        }
+    </style>
 </head>
 
 <body>
@@ -56,7 +70,7 @@
                                 </thead>
                                 <tbody>
                                     {% for game in games %}
-                                    <tr>
+                                    <tr class="clickable-row" data-href="{% url 'core:game_detail' pgn_id=game.pgn_id %}">
                                         <td>
                                             <small>{{ game.end|date:"M d, Y" }}</small>
                                         </td>
@@ -75,9 +89,8 @@
                                             <small class="text-muted">{{ game.time_class|title }}</small>
                                         </td>
                                         <td>
-                                            <a href="{{ game.url }}" target="_blank" class="btn btn-sm btn-outline-primary">Watch</a>
-                                            <button class="btn btn-sm btn-outline-secondary" onclick="showPGN('{{ game.pgn|escapejs }}')">View PGN</button>
-                                            <a href="{% url 'core:game_detail' pgn_id=game.pgn_id %}" class="btn btn-sm btn-success">Analyze</a>
+                                            <a href="{{ game.url }}" target="_blank" class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation()">Watch</a>
+                                            <button class="btn btn-sm btn-outline-secondary" onclick="event.stopPropagation(); showPGN('{{ game.pgn|escapejs }}')">View PGN</button>
                                         </td>
                                     </tr>
                                     {% endfor %}
@@ -120,6 +133,19 @@
             var myModal = new bootstrap.Modal(document.getElementById('pgnModal'));
             myModal.show();
         }
+
+        // Make table rows clickable
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll(".clickable-row").forEach(row => {
+                row.addEventListener("click", function(e) {
+                    // Don't navigate if clicking on buttons
+                    if (e.target.tagName === 'A' || e.target.tagName === 'BUTTON' || e.target.closest('a') || e.target.closest('button')) {
+                        return;
+                    }
+                    window.location.href = this.dataset.href;
+                });
+            });
+        });
     </script>
 </body>
 
