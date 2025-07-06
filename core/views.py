@@ -5,9 +5,25 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 from chessdotcom import get_player_game_archives, get_player_games_by_month, Client
+from datetime import datetime
 
 # Configure chessdotcom client with proper User-Agent
 Client.request_config['headers']['User-Agent'] = 'Chess Analysis Tool (github.com/chiedu18/chess-analysis; contact: chiedu@example.com)'
+
+def _massage(game):
+    """Flatten the nested JSON so the template is trivial."""
+    return {
+        "end": datetime.utcfromtimestamp(game["end_time"]),
+        "white": game["white"]["username"],
+        "white_rating": game["white"]["rating"],
+        "white_result": game["white"]["result"],
+        "black": game["black"]["username"],
+        "black_rating": game["black"]["rating"],
+        "black_result": game["black"]["result"],
+        "time_class": game["time_class"],
+        "pgn": game["pgn"],
+        "url": game.get("url", ""),
+    }
 
 def fetch_chess_com_games(username, limit=100):
     """
@@ -43,7 +59,7 @@ def fetch_chess_com_games(username, limit=100):
             for game in games:
                 if len(all_games) >= limit:
                     break
-                all_games.append(game)
+                all_games.append(_massage(game))
         
         return {'games': all_games[:limit]}
         

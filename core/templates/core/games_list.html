@@ -45,23 +45,19 @@
                                     {% for game in games %}
                                     <tr>
                                         <td>
-                                            <small>{{ game.end_time|date:"M d, Y" }}</small>
+                                            <small>{{ game.end|date:"M d, Y" }}</small>
                                         </td>
                                         <td>
-                                            <strong>{{ game.white }}</strong> {% if game.white_result == 'win' %}
-                                            <span class="badge bg-success ms-1">W</span> {% elif game.white_result == 'lose' %}
-                                            <span class="badge bg-danger ms-1">L</span> {% else %}
-                                            <span class="badge bg-secondary ms-1">D</span> {% endif %}
+                                            <strong>{{ game.white }}</strong>
+                                            <span class="badge bg-secondary ms-1">{{ game.white_rating }}</span>
                                         </td>
                                         <td>
-                                            <strong>{{ game.black }}</strong> {% if game.black_result == 'win' %}
-                                            <span class="badge bg-success ms-1">W</span> {% elif game.black_result == 'lose' %}
-                                            <span class="badge bg-danger ms-1">L</span> {% else %}
-                                            <span class="badge bg-secondary ms-1">D</span> {% endif %}
+                                            <strong>{{ game.black }}</strong>
+                                            <span class="badge bg-secondary ms-1">{{ game.black_rating }}</span>
                                         </td>
                                         <td>
-                                            {% if game.white_result == 'win' %}
-                                            <span class="text-success">1-0</span> {% elif game.black_result == 'win' %}
+                                            {% if game.white_result in ('win','checkmated','timeout','resigned') %}
+                                            <span class="text-success">1-0</span> {% elif game.black_result in ('win','checkmated','timeout','resigned') %}
                                             <span class="text-danger">0-1</span> {% else %}
                                             <span class="text-secondary">½-½</span> {% endif %}
                                         </td>
@@ -69,9 +65,8 @@
                                             <small class="text-muted">{{ game.time_class|title }}</small>
                                         </td>
                                         <td>
-                                            <a href="{{ game.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
-                                                    View PGN
-                                                </a>
+                                            <a href="{{ game.url }}" target="_blank" class="btn btn-sm btn-outline-primary">Watch</a>
+                                            <button class="btn btn-sm btn-outline-secondary" onclick="showPGN('{{ game.pgn|escapejs }}')">View PGN</button>
                                         </td>
                                     </tr>
                                     {% endfor %}
@@ -91,8 +86,30 @@
         </div>
     </div>
 
+    <!-- PGN Modal -->
+    <div class="modal fade" id="pgnModal" tabindex="-1" aria-labelledby="pgnModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="pgnModalLabel">Game PGN</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <pre id="pgnText" style="white-space: pre-wrap;"></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function showPGN(pgn) {
+            document.getElementById('pgnText').textContent = pgn;
+            var myModal = new bootstrap.Modal(document.getElementById('pgnModal'));
+            myModal.show();
+        }
+    </script>
 </body>
 
 </html>
