@@ -1,11 +1,10 @@
 from django.urls import path
-from . import views
+from .views import HomeView, FetchGamesAPIView, GamesListView, TestAPIView
 
-app_name = 'core'
-
+app_name = "core"
 urlpatterns = [
-    path('', views.home, name='home'),
-    path('api/fetch-games/', views.fetch_games, name='fetch_games'),
-    path('api/test/', views.test_api, name='test_api'),
-    path('games/', views.games_list, name='games_list'),
+    path("", HomeView.as_view(), name="home"),
+    path("api/fetch-games/", FetchGamesAPIView.as_view(), name="fetch_games"),
+    path("games/", GamesListView.as_view(), name="games_list"),
+    path("api/test/", TestAPIView.as_view(), name="test_api"),
 ] 

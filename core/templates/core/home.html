@@ -31,12 +31,7 @@
                         </p>
 
                         <form id="user-form" class="mb-4">
-                            {% csrf_token %}
-                            <div class="mb-3">
-                                <label for="username" class="form-label">Chess.com Username:</label>
-                                <input type="text" class="form-control" id="username" name="username" placeholder="Enter your Chess.com username" required>
-                                <div class="form-text">Try: <strong>Hikaru</strong>, <strong>MagnusCarlsen</strong>, or <strong>GothamChess</strong></div>
-                            </div>
+                            {% csrf_token %} {{ form.as_p }}
                             <button type="submit" class="btn btn-primary w-100">Fetch Last 100 Games</button>
                         </form>
 
@@ -80,7 +75,7 @@
         document.getElementById('user-form').addEventListener('submit', async function(e) {
             e.preventDefault();
 
-            const username = document.getElementById('username').value.trim();
+            const username = document.getElementById('id_username').value.trim();
             if (!username) {
                 showError('Please enter a username');
                 return;
@@ -154,7 +149,7 @@
         function displayGamesPreview(games) {
             const gamesList = document.getElementById('gamesList');
             const gamesPreview = document.getElementById('gamesPreview');
-            const username = document.getElementById('username').value.trim();
+            const username = document.getElementById('id_username').value.trim();
 
             gamesList.innerHTML = '';
 
@@ -162,19 +157,17 @@
                 const gameElement = document.createElement('div');
                 gameElement.className = 'card mb-2';
 
-                const isWhite = game.white === username;
-                const result = getGameResult(game, isWhite);
-                const opponent = isWhite ? game.black : game.white;
-                const date = new Date(game.end_time * 1000).toLocaleDateString();
+                const opponent = game.white === username ? game.black : game.white;
+                const date = new Date(game.end).toLocaleDateString();
 
                 gameElement.innerHTML = `
                     <div class="card-body py-2">
                         <div class="d-flex justify-content-between align-items-center">
-                            <span class="badge ${getResultClass(result)}">${result}</span>
+                            <span class="badge ${game.outcome_class}">${game.outcome}</span>
                             <small class="text-muted">${date}</small>
                         </div>
                         <div class="small text-muted">
-                            vs ${opponent} • ${game.time_class} • ${game.time_control}
+                            vs ${opponent} • ${game.time_class}
                         </div>
                     </div>
                 `;
@@ -190,27 +183,6 @@
             }
 
             gamesPreview.style.display = 'block';
-        }
-
-        function getGameResult(game, isWhite) {
-            if (isWhite) {
-                return game.white_result;
-            } else {
-                return game.black_result;
-            }
-        }
-
-        function getResultClass(result) {
-            switch (result.toLowerCase()) {
-                case 'win':
-                    return 'bg-success';
-                case 'lose':
-                    return 'bg-danger';
-                case 'draw':
-                    return 'bg-secondary';
-                default:
-                    return 'bg-primary';
-            }
         }
 
         // Test API functionality
