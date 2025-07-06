@@ -4,7 +4,10 @@ from django.shortcuts import render
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
-from chessdotcom import get_player_game_archives, get_player_games_by_month
+from chessdotcom import get_player_game_archives, get_player_games_by_month, Client
+
+# Configure chessdotcom client with proper User-Agent
+Client.request_config['headers']['User-Agent'] = 'Chess Analysis Tool (github.com/chiedu18/chess-analysis; contact: chiedu@example.com)'
 
 def fetch_chess_com_games(username, limit=100):
     """
