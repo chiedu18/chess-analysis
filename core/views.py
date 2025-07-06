@@ -10,8 +10,65 @@ from datetime import datetime
 # Configure chessdotcom client with proper User-Agent
 Client.request_config['headers']['User-Agent'] = 'Chess Analysis Tool (github.com/chiedu18/chess-analysis; contact: chiedu@example.com)'
 
-def _massage(game):
-    """Flatten the nested JSON so the template is trivial."""
+# User-Agent for direct API calls
+USER_AGENT = "chess-analysis-app/0.2 (github.com/chiedu18; contact: chiedu@example.com)"
+
+def _profile(username):
+    """Fetch player profile and stats from Chess.com API"""
+    try:
+        headers = {"User-Agent": USER_AGENT, "Accept": "application/json"}
+        base = f"https://api.chess.com/pub/player/{username.lower()}"
+        
+        # Get profile info
+        prof_response = requests.get(base, headers=headers, timeout=10)
+        prof_response.raise_for_status()
+        prof = prof_response.json()
+        
+        # Get stats
+        stats_response = requests.get(base + "/stats", headers=headers, timeout=10)
+        stats_response.raise_for_status()
+        stats = stats_response.json()
+        
+        blitz_rating = stats.get("chess_blitz", {}).get("last", {}).get("rating")
+        
+        return {
+            "username": prof["username"],
+            "title": prof.get("title"),
+            "blitz_rating": blitz_rating
+        }
+    except Exception as e:
+        # Return basic info if profile fetch fails
+        return {
+            "username": username,
+            "title": None,
+            "blitz_rating": None
+        }
+
+def _outcome(game, username):
+    """Determine game outcome from the searched user's perspective"""
+    w = game["white"]["username"].lower()
+    wr = game["white"]["result"]
+    br = game["black"]["result"]
+    
+    if wr == br:  # both "draw"
+        return "Draw"
+    
+    won = wr == "win"
+    user_is_white = username.lower() == w
+    return "Win" if won == user_is_white else "Loss"
+
+def _massage(game, username):
+    """Flatten the nested JSON and add user-perspective outcome"""
+    outcome = _outcome(game, username)
+    
+    # Determine badge class based on outcome
+    if outcome == "Win":
+        outcome_class = "bg-success"
+    elif outcome == "Loss":
+        outcome_class = "bg-danger"
+    else:
+        outcome_class = "bg-secondary"
+    
     return {
         "end": datetime.utcfromtimestamp(game["end_time"]),
         "white": game["white"]["username"],
@@ -23,6 +80,8 @@ def _massage(game):
         "time_class": game["time_class"],
         "pgn": game["pgn"],
         "url": game.get("url", ""),
+        "outcome": outcome,
+        "outcome_class": outcome_class,
     }
 
 def fetch_chess_com_games(username, limit=100):
@@ -59,9 +118,17 @@ def fetch_chess_com_games(username, limit=100):
             for game in games:
                 if len(all_games) >= limit:
                     break
-                all_games.append(_massage(game))
+                all_games.append(game)
         
-        return {'games': all_games[:limit]}
+        # Sort by newest first before processing
+        all_games.sort(key=lambda g: g["end_time"], reverse=True)
+        
+        # Process and massage the games
+        processed_games = []
+        for game in all_games[:limit]:
+            processed_games.append(_massage(game, username))
+        
+        return {'games': processed_games}
         
     except Exception as e:
         # chessdotcom library handles most errors, but we'll catch any remaining ones
@@ -118,11 +185,26 @@ def games_list(request):
     """Display list of fetched games"""
     username = request.GET.get('username')
     if username:
+        # Fetch profile information
+        profile = _profile(username)
+        
+        # Fetch games
         result = fetch_chess_com_games(username, limit=100)
         if 'error' in result:
-            return render(request, 'core/games_list.html', {'error': result['error']})
-        return render(request, 'core/games_list.html', {'games': result['games']})
-    return render(request, 'core/games_list.html', {'games': []})
+            return render(request, 'core/games_list.html', {
+                'error': result['error'],
+                'profile': profile
+            })
+        
+        return render(request, 'core/games_list.html', {
+            'games': result['games'],
+            'profile': profile
+        })
+    
+    return render(request, 'core/games_list.html', {
+        'games': [],
+        'profile': None
+    })
 
 def test_api(request):
     """Test endpoint to verify Chess.com API is working"""
